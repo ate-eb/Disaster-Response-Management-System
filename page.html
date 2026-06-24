@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DRMS — Disaster Response Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET & VARIABLES ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #08090d;
+  --bg2:        #0d0f17;
+  --bg3:        #131622;
+  --panel:      #141824;
+  --border:     #1e2535;
+  --border2:    #252d42;
+  --accent:     #e8472a;
+  --accent2:    #ff6b47;
+  --blue:       #2d8cff;
+  --green:      #22c55e;
+  --yellow:     #fbbf24;
+  --purple:     #a855f7;
+  --text:       #e2e8f0;
+  --muted:      #64748b;
+  --grid-color: rgba(45,140,255,0.04);
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Exo 2', sans-serif; overflow-x: hidden; }
+
+/* ─── GRID BACKGROUND ─── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ─── LAYOUT ─── */
+.wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── TOPBAR ─── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 62px;
+  background: rgba(13,15,23,0.95);
+  border-bottom: 1px solid var(--border2);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+  font-family: 'Rajdhani', sans-serif; font-size: 1.35rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.logo-icon {
+  width: 34px; height: 34px; background: var(--accent);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+  animation: pulse-hex 2s ease-in-out infinite;
+}
+@keyframes pulse-hex {
+  0%,100% { filter: brightness(1); }
+  50%      { filter: brightness(1.4) drop-shadow(0 0 8px var(--accent)); }
+}
+.logo-text span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 6px var(--green); animation: blink 1.5s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.status-text { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: var(--green); }
+.clock { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--muted); }
+
+/* ─── NAV TABS ─── */
+nav {
+  display: flex; gap: 2px; padding: 0 28px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 11px 20px; font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  user-select: none;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+main { flex: 1; padding: 24px 28px; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ─── STAT CARDS ─── */
+.stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 16px 18px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.red::before   { background: var(--accent); }
+.stat-card.blue::before  { background: var(--blue); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.yellow::before { background: var(--yellow); }
+.stat-card.purple::before { background: var(--purple); }
+.stat-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+              letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
+.stat-value { font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700; line-height: 1; }
+.stat-card.red    .stat-value { color: var(--accent); }
+.stat-card.blue   .stat-value { color: var(--blue); }
+.stat-card.green  .stat-value { color: var(--green); }
+.stat-card.yellow .stat-value { color: var(--yellow); }
+.stat-card.purple .stat-value { color: var(--purple); }
+
+/* ─── TWO-COLUMN LAYOUT ─── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+
+/* ─── PANELS ─── */
+.panel {
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: 10px; overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.panel-title {
+  font-family: 'Rajdhani', sans-serif; font-size: 0.85rem;
+  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-title .dot { width: 6px; height: 6px; border-radius: 50%; }
+.panel-body { padding: 16px 18px; }
+
+/* ─── ZONE CARDS ─── */
+.zone-list { display: flex; flex-direction: column; gap: 8px; max-height: 480px; overflow-y: auto; }
+.zone-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.2s, transform 0.15s;
+  cursor: default;
+}
+.zone-card:hover { border-color: var(--border2); transform: translateX(2px); }
+.zone-card.rescued { opacity: 0.5; }
+.sev-badge {
+  min-width: 36px; height: 36px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700;
+}
+.sev-10, .sev-9 { background: rgba(232,71,42,0.2); color: var(--accent); border: 1px solid rgba(232,71,42,0.4); }
+.sev-8,  .sev-7 { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+.sev-6,  .sev-5 { background: rgba(45,140,255,0.15); color: var(--blue); border: 1px solid rgba(45,140,255,0.3); }
+.sev-4,  .sev-3, .sev-2, .sev-1 { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+.zone-info { flex: 1; }
+.zone-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; }
+.zone-meta { font-size: 0.72rem; color: var(--muted); display: flex; gap: 10px; }
+.zone-type-tag {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+}
+.tag-flood      { background: rgba(45,140,255,0.15); color: var(--blue); }
+.tag-earthquake { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.tag-fire       { background: rgba(232,71,42,0.15); color: var(--accent); }
+.tag-landslide  { background: rgba(168,85,247,0.15); color: var(--purple); }
+.zone-actions { display: flex; flex-direction: column; gap: 4px; }
+
+/* ─── TEAM CARDS ─── */
+.team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.team-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  transition: border-color 0.2s;
+}
+.team-card.busy { opacity: 0.6; }
+.team-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+.team-type-badge {
+  display: inline-block; font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 2px 7px; border-radius: 3px; margin-bottom: 6px;
+}
+.type-rescue      { background: rgba(232,71,42,0.15); color: var(--accent); }
+.type-medical     { background: rgba(34,197,94,0.12); color: var(--green); }
+.type-engineering { background: rgba(45,140,255,0.15); color: var(--blue); }
+.type-fire        { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.team-status { font-size: 0.72rem; color: var(--muted); }
+.avail-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; }
+.avail-dot.yes { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.avail-dot.no  { background: var(--muted); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  padding: 6px 14px; border-radius: 5px; border: none; cursor: pointer;
+  font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase; transition: all 0.15s;
+}
+.btn-red    { background: var(--accent); color: #fff; }
+.btn-red:hover { background: var(--accent2); }
+.btn-blue   { background: rgba(45,140,255,0.2); color: var(--blue); border: 1px solid rgba(45,140,255,0.4); }
+.btn-blue:hover { background: rgba(45,140,255,0.35); }
+.btn-green  { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.35); }
+.btn-green:hover { background: rgba(34,197,94,0.3); }
+.btn-ghost  { background: transparent; color: var(--muted); border: 1px solid var(--border2); }
+.btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+.btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+.btn-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); border: 1px solid rgba(251,191,36,0.35); }
+.btn-yellow:hover { background: rgba(251,191,36,0.3); }
+
+/* ─── FORMS ─── */
+.form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 120px; }
+label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.06em; color: var(--muted); }
+input, select {
+  background: var(--bg); border: 1px solid var(--border2);
+  color: var(--text); border-radius: 5px; padding: 8px 10px;
+  font-family: 'Exo 2', sans-serif; font-size: 0.85rem;
+  outline: none; transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--blue); }
+select option { background: var(--bg); }
+
+/* ─── SVG GRAPH ─── */
+#graph-svg {
+  width: 100%; height: 340px; background: var(--bg); border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.graph-node { cursor: pointer; }
+.graph-node circle { transition: r 0.2s, filter 0.2s; }
+.graph-node:hover circle { filter: brightness(1.5); }
+.path-edge { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 6 4;
+             animation: dash 1s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -20; } }
+
+/* ─── COMMAND TREE SVG ─── */
+#tree-svg { width: 100%; height: 320px; }
+
+/* ─── LOG TABLE ─── */
+.log-list { max-height: 380px; overflow-y: auto; }
+.log-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.log-item:last-child { border-bottom: none; }
+.log-action {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+  background: rgba(45,140,255,0.12); color: var(--blue);
+}
+.log-detail { flex: 1; color: var(--text); }
+.log-time { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+
+/* ─── PATH RESULT ─── */
+.path-result {
+  margin-top: 14px; padding: 14px; background: var(--bg);
+  border-radius: 8px; border: 1px solid var(--border2);
+  font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+}
+.path-node { display: inline-flex; align-items: center; }
+.path-arrow { color: var(--accent); margin: 0 6px; }
+
+/* ─── TOAST ─── */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 10px 18px; border-radius: 7px; font-size: 0.82rem; font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  animation: slide-in 0.3s ease, fade-out 0.4s ease 2.6s forwards;
+}
+.toast-success { background: #14532d; border: 1px solid var(--green); color: var(--green); }
+.toast-error   { background: #450a0a; border: 1px solid var(--accent); color: var(--accent); }
+.toast-info    { background: #1e3a5f; border: 1px solid var(--blue); color: var(--blue); }
+@keyframes slide-in  { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-out  { to   { opacity: 0; transform: translateX(30px); } }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ─── ALERTS ─── */
+.alert { padding: 10px 14px; border-radius: 7px; font-size: 0.82rem; margin-top: 10px; }
+.alert-warn { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); color: var(--yellow); }
+.alert-info { background: rgba(45,140,255,0.1); border: 1px solid rgba(45,140,255,0.3); color: var(--blue); }
+
+/* ─── MISC ─── */
+.section-gap { margin-bottom: 20px; }
+.flex-end { display: flex; justify-content: flex-end; }
+.text-muted { color: var(--muted); font-size: 0.8rem; }
+.empty-state { padding: 32px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚠</div>
+    <div class="logo-text">DR<span>MS</span> &mdash; Disaster Response</div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="status-dot" id="conn-dot" style="background:var(--muted);box-shadow:none;"></div>
+      <div class="status-text" id="conn-text">CONNECTING...</div>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <div class="tab active" data-page="dashboard">📊 Dashboard</div>
+  <div class="tab" data-page="zones">🚨 Zones</div>
+  <div class="tab" data-page="teams">👥 Teams</div>
+  <div class="tab" data-page="routing">🗺 Routing</div>
+  <div class="tab" data-page="command">🌲 Command</div>
+  <div class="tab" data-page="logs">📋 Logs</div>
+</nav>
+
+<main>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="stats-row">
+    <div class="stat-card red"><div class="stat-label">Active Zones</div><div class="stat-value" id="s-active">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Rescued</div><div class="stat-value" id="s-rescued">—</div></div>
+    <div class="stat-card blue"><div class="stat-label">Total Zones</div><div class="stat-value" id="s-total">—</div></div>
+    <div class="stat-card yellow"><div class="stat-label">Teams</div><div class="stat-value" id="s-teams">—</div></div>
+    <div class="stat-card purple"><div class="stat-label">Available</div><div class="stat-value" id="s-avail">—</div></div>
+    <div class="stat-card blue"><div class="stat-label">At Risk Pop.</div><div class="stat-value" id="s-pop">—</div></div>
+  </div>
+
+  <div class="two-col section-gap">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--accent);"></div>Priority Queue — Critical Zones</div>
+        <button class="btn btn-red btn-sm" onclick="rescueTop()">⬆ Rescue Top</button>
+      </div>
+      <div class="panel-body">
+        <div class="zone-list" id="dash-zones"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--blue);"></div>Rescue Teams</div>
+      </div>
+      <div class="panel-body">
+        <div class="team-grid" id="dash-teams"></div>
+      </div>
+    </div>
+  </div>
+  <div class="alert alert-info" id="next-rescue-hint"></div>
+</div>
+
+<!-- ══════════════ ZONES ══════════════ -->
+<div class="page" id="page-zones">
+  <div class="two-col section-gap">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--accent);"></div>Add Danger Zone</div>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label>Zone Name</label>
+            <input id="z-name" placeholder="e.g. South Flood Zone" />
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="z-type">
+              <option value="flood">Flood</option>
+              <option value="earthquake">Earthquake</option>
+              <option value="fire">Fire</option>
+              <option value="landslide">Landslide</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Severity (1–10)</label>
+            <input id="z-sev" type="number" min="1" max="10" placeholder="1–10" />
+          </div>
+          <div class="form-group">
+            <label>Population at Risk</label>
+            <input id="z-pop" type="number" placeholder="e.g. 500" />
+          </div>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-red" onclick="addZone()">＋ Add Zone</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--yellow);"></div>Quick Actions</div>
+      </div>
+      <div class="panel-body">
+        <p class="text-muted" style="margin-bottom:12px;">Rescue the highest severity zone from the priority queue.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-red" onclick="rescueTop()">⬆ Rescue Highest Priority</button>
+          <button class="btn btn-ghost" onclick="loadZones()">↺ Refresh</button>
+        </div>
+        <div class="alert alert-warn" style="margin-top:14px;">
+          Zones are ordered by <strong>Priority Queue</strong> (max-heap). Highest severity is always rescued first.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><div class="dot" style="background:var(--accent);"></div>All Zones — Priority Ordered</div>
+      <span class="text-muted" id="zone-count"></span>
+    </div>
+    <div class="panel-body">
+      <div class="zone-list" id="zones-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TEAMS ══════════════ -->
+<div class="page" id="page-teams">
+  <div class="two-col section-gap">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--green);"></div>Add Rescue Team</div>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label>Team Name</label>
+            <input id="t-name" placeholder="e.g. Team Foxtrot" />
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select id="t-type">
+              <option value="rescue">Rescue</option>
+              <option value="medical">Medical</option>
+              <option value="engineering">Engineering</option>
+              <option value="fire">Fire</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-green" onclick="addTeam()">＋ Add Team</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--blue);"></div>Assign Team to Zone</div>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Select Team</label>
+            <select id="assign-team"></select>
+          </div>
+          <div class="form-group">
+            <label>Select Zone</label>
+            <select id="assign-zone"></select>
+          </div>
+        </div>
+        <div class="flex-end">
+          <button class="btn btn-blue" onclick="assignTeam()">⇢ Assign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><div class="dot" style="background:var(--green);"></div>All Teams</div>
+    </div>
+    <div class="panel-body">
+      <div class="team-grid" id="teams-full"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ROUTING ══════════════ -->
+<div class="page" id="page-routing">
+  <div class="two-col section-gap">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--blue);"></div>Find Fastest Route — BFS/Dijkstra</div>
+      </div>
+      <div class="panel-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>From Location</label>
+            <select id="route-from"></select>
+          </div>
+          <div class="form-group">
+            <label>To Location</label>
+            <select id="route-to"></select>
+          </div>
+        </div>
+        <div class="flex-end" style="gap:10px;">
+          <button class="btn btn-blue" onclick="findRoute()">⇢ Find Route</button>
+          <button class="btn btn-ghost" onclick="clearRoute()">✕ Clear</button>
+        </div>
+        <div id="route-result"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><div class="dot" style="background:var(--purple);"></div>Location Graph</div>
+      </div>
+      <div class="panel-body" style="padding:10px;">
+        <svg id="graph-svg" viewBox="0 0 560 320"></svg>
+      </div>
+    </div>
+  </div>
+  <div class="alert alert-info">
+    The graph uses <strong>Dijkstra's shortest path algorithm</strong> (BFS on weighted edges). Each edge weight is travel time in minutes.
+  </div>
+</div>
+
+<!-- ══════════════ COMMAND TREE ══════════════ -->
+<div class="page" id="page-command">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><div class="dot" style="background:var(--purple);"></div>Hierarchical Command Structure — Tree</div>
+    </div>
+    <div class="panel-body" style="padding:10px;">
+      <svg id="tree-svg" viewBox="0 0 700 300"></svg>
+    </div>
+  </div>
+  <div class="alert alert-info" style="margin-top:14px;">
+    A <strong>Tree</strong> data structure represents the chain of command. Each node is a commander or team. The root is the Director General.
+  </div>
+</div>
+
+<!-- ══════════════ LOGS ══════════════ -->
+<div class="page" id="page-logs">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><div class="dot" style="background:var(--yellow);"></div>Operation History — Stack</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-yellow btn-sm" onclick="undoOp()">↩ Undo Last</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadLogs()">↺ Refresh</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="log-list" id="logs-list"></div>
+    </div>
+  </div>
+  <div class="alert alert-info" style="margin-top:14px;">
+    Operations are stored in a <strong>Stack</strong>. The "Undo Last" button pops the top element — rolling back the most recent action record.
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+const API = 'http://localhost:8080';
+
+// ── HELPERS ──────────────────────────────────────────────
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API + path, opts);
+    return await r.json();
+  } catch(e) {
+    return null;
+  }
+}
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const d = document.createElement('div');
+  d.className = 'toast toast-' + type;
+  d.textContent = msg;
+  c.appendChild(d);
+  setTimeout(() => d.remove(), 3100);
+}
+
+function sevClass(s) {
+  if (s >= 9) return 'sev-10';
+  if (s >= 7) return 'sev-8';
+  if (s >= 5) return 'sev-6';
+  return 'sev-4';
+}
+function typeTag(t) {
+  return `<span class="zone-type-tag tag-${t}">${t}</span>`;
+}
+function typeBadge(t) {
+  return `<span class="team-type-badge type-${t}">${t}</span>`;
+}
+
+// ── CLOCK & CONNECTION ────────────────────────────────────
+async function checkConnection() {
+  const data = await api('GET', '/api/stats');
+  const dot  = document.getElementById('conn-dot');
+  const txt  = document.getElementById('conn-text');
+  if (data) {
+    dot.style.background   = 'var(--green)';
+    dot.style.boxShadow    = '0 0 6px var(--green)';
+    txt.textContent        = 'CONNECTED';
+    txt.style.color        = 'var(--green)';
+  } else {
+    dot.style.background   = 'var(--accent)';
+    dot.style.boxShadow    = '0 0 6px var(--accent)';
+    txt.textContent        = 'OFFLINE — start server.exe';
+    txt.style.color        = 'var(--accent)';
+  }
+}
+
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.toTimeString().split(' ')[0];
+}, 1000);
+checkConnection();
+setInterval(checkConnection, 5000);
+
+// ── TAB NAVIGATION ───────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('page-' + t.dataset.page).classList.add('active');
+    if (t.dataset.page === 'dashboard') loadDashboard();
+    if (t.dataset.page === 'zones')     { loadZones(); }
+    if (t.dataset.page === 'teams')     loadTeams();
+    if (t.dataset.page === 'routing')   { loadGraph(); loadLocations(); }
+    if (t.dataset.page === 'command')   loadTree();
+    if (t.dataset.page === 'logs')      loadLogs();
+  });
+});
+
+// ── DASHBOARD ────────────────────────────────────────────
+async function loadDashboard() {
+  const [stats, zones, teams] = await Promise.all([
+    api('GET', '/api/stats'),
+    api('GET', '/api/zones'),
+    api('GET', '/api/teams')
+  ]);
+  if (!stats) return;
+
+  document.getElementById('s-active').textContent  = stats.activeZones;
+  document.getElementById('s-rescued').textContent = stats.rescuedZones;
+  document.getElementById('s-total').textContent   = stats.totalZones;
+  document.getElementById('s-teams').textContent   = stats.totalTeams;
+  document.getElementById('s-avail').textContent   = stats.availableTeams;
+  document.getElementById('s-pop').textContent     = stats.totalPopulation.toLocaleString();
+
+  // Priority queue (top 5 active)
+  const active = (zones||[]).filter(z => !z.rescued).slice(0, 5);
+  const hint = document.getElementById('next-rescue-hint');
+  if (active.length > 0) {
+    hint.textContent = `🚨 Next in queue: "${active[0].name}" — Severity ${active[0].severity}/10`;
+  } else {
+    hint.textContent = '✅ All zones have been rescued!';
+  }
+  document.getElementById('dash-zones').innerHTML = renderZoneCards(active, false);
+  document.getElementById('dash-teams').innerHTML = renderTeamCards(teams||[]);
+}
+
+// ── ZONES ─────────────────────────────────────────────────
+async function loadZones() {
+  const data = await api('GET', '/api/zones');
+  if (!data) { toast('Cannot reach server', 'error'); return; }
+  document.getElementById('zone-count').textContent = data.length + ' zones';
+  document.getElementById('zones-list').innerHTML = renderZoneCards(data, true);
+}
+
+function renderZoneCards(zones, showAssign) {
+  if (!zones.length) return '<div class="empty-state">No zones found</div>';
+  return zones.map(z => `
+    <div class="zone-card ${z.rescued ? 'rescued' : ''}">
+      <div class="sev-badge ${sevClass(z.severity)}">${z.severity}</div>
+      <div class="zone-info">
+        <div class="zone-name">${z.name} ${z.rescued ? '✅' : ''}</div>
+        <div class="zone-meta">
+          ${typeTag(z.type)}
+          <span>👥 ${z.population.toLocaleString()}</span>
+          ${z.assignedTeam ? `<span>🔗 ${z.assignedTeam}</span>` : ''}
+          <span style="color:var(--muted)">${z.timestamp.split(' ')[1]||''}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addZone() {
+  const name = document.getElementById('z-name').value.trim();
+  const sev  = parseInt(document.getElementById('z-sev').value);
+  const pop  = parseInt(document.getElementById('z-pop').value) || 0;
+  const type = document.getElementById('z-type').value;
+  if (!name || !sev) { toast('Fill in name and severity', 'error'); return; }
+  if (sev < 1 || sev > 10) { toast('Severity must be 1–10', 'error'); return; }
+  const res = await api('POST', '/api/zones', { name, severity: sev, population: pop, type });
+  if (res && res.id) {
+    toast('Zone added: ' + name, 'success');
+    document.getElementById('z-name').value = '';
+    document.getElementById('z-sev').value  = '';
+    document.getElementById('z-pop').value  = '';
+    loadZones();
+  } else {
+    toast('Failed to add zone', 'error');
+  }
+}
+
+async function rescueTop() {
+  const res = await api('PUT', '/api/zones/rescue', {});
+  if (res && res.id) {
+    toast('✅ Rescued: ' + res.name, 'success');
+    loadDashboard();
+    loadZones();
+  } else {
+    toast(res && res.error ? res.error : 'Nothing to rescue', 'error');
+  }
+}
+
+// ── TEAMS ─────────────────────────────────────────────────
+async function loadTeams() {
+  const [teams, zones] = await Promise.all([
+    api('GET', '/api/teams'),
+    api('GET', '/api/zones')
+  ]);
+  if (!teams) return;
+  document.getElementById('teams-full').innerHTML = renderTeamCards(teams, true);
+
+  // Populate assign dropdowns
+  const teamSel = document.getElementById('assign-team');
+  const zoneSel = document.getElementById('assign-zone');
+  teamSel.innerHTML = (teams.filter(t => t.available)).map(t =>
+    `<option value="${t.id}|${t.name}">${t.name} (${t.type})</option>`
+  ).join('');
+  if (!teamSel.options.length) teamSel.innerHTML = '<option>No available teams</option>';
+
+  const activeZones = (zones||[]).filter(z => !z.rescued);
+  zoneSel.innerHTML = activeZones.map(z =>
+    `<option value="${z.id}">${z.name} (sev ${z.severity})</option>`
+  ).join('');
+  if (!zoneSel.options.length) zoneSel.innerHTML = '<option>No active zones</option>';
+}
+
+function renderTeamCards(teams, withRelease) {
+  return teams.map(t => `
+    <div class="team-card ${t.available ? '' : 'busy'}">
+      <div class="team-name">${t.name}</div>
+      ${typeBadge(t.type)}
+      <div class="team-status">
+        <span class="avail-dot ${t.available ? 'yes' : 'no'}"></span>
+        ${t.available ? 'Available at HQ' : 'Deployed: ' + t.currentZone}
+      </div>
+      ${withRelease && !t.available ? `<button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="releaseTeam(${t.id})">↩ Release</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function addTeam() {
+  const name = document.getElementById('t-name').value.trim();
+  const type = document.getElementById('t-type').value;
+  if (!name) { toast('Enter team name', 'error'); return; }
+  const res = await api('POST', '/api/teams', { name, type });
+  if (res && res.id) {
+    toast('Team added: ' + name, 'success');
+    document.getElementById('t-name').value = '';
+    loadTeams();
+  } else {
+    toast('Failed to add team', 'error');
+  }
+}
+
+async function assignTeam() {
+  const tv = document.getElementById('assign-team').value;
+  const zid = parseInt(document.getElementById('assign-zone').value);
+  if (!tv || tv.includes('No ') || !zid) { toast('Select a team and zone', 'error'); return; }
+  const [tid, tname] = tv.split('|');
+  const res = await api('PUT', '/api/zones/' + zid + '/assign', { team: tname, teamId: parseInt(tid) });
+  if (res && !res.error) {
+    toast(tname + ' assigned!', 'success');
+    loadTeams();
+  } else {
+    toast('Assignment failed', 'error');
+  }
+}
+
+async function releaseTeam(id) {
+  const res = await api('PUT', '/api/teams/' + id + '/release', {});
+  if (res && !res.error) {
+    toast('Team released to HQ', 'success');
+    loadTeams();
+  }
+}
+
+// ── ROUTING ───────────────────────────────────────────────
+let graphData = null;
+let highlightPath = [];
+
+async function loadGraph() {
+  graphData = await api('GET', '/api/graph');
+  if (graphData) drawGraph();
+}
+
+async function loadLocations() {
+  if (!graphData) graphData = await api('GET', '/api/graph');
+  if (!graphData) return;
+  const from = document.getElementById('route-from');
+  const to   = document.getElementById('route-to');
+  const opts = graphData.nodes.map(n =>
+    `<option value="${n.id}">${n.name}</option>`).join('');
+  from.innerHTML = opts;
+  to.innerHTML   = opts;
+  if (graphData.nodes.length > 1) to.selectedIndex = 1;
+}
+
+async function findRoute() {
+  const from = document.getElementById('route-from').value;
+  const to   = document.getElementById('route-to').value;
+  const data = await api('GET', '/api/path?from=' + from + '&to=' + to);
+  const div  = document.getElementById('route-result');
+  if (!data || !data.found) {
+    div.innerHTML = '<div class="path-result">No path found between these locations.</div>';
+    highlightPath = [];
+    drawGraph();
+    return;
+  }
+  highlightPath = data.path;
+  const steps = data.names.map((n, i) =>
+    `<span class="path-node">${i ? '<span class="path-arrow">→</span>' : ''}${n}</span>`
+  ).join('');
+  div.innerHTML = `<div class="path-result">
+    <div style="margin-bottom:8px;color:var(--green);font-weight:600;">✅ Route found — ${data.distance} min</div>
+    <div>${steps}</div>
+  </div>`;
+  drawGraph();
+}
+
+function clearRoute() {
+  highlightPath = [];
+  document.getElementById('route-result').innerHTML = '';
+  drawGraph();
+}
+
+function drawGraph() {
+  const svg = document.getElementById('graph-svg');
+  if (!graphData) return;
+  const W = 560, H = 320;
+
+  // Fixed node positions
+  const pos = {
+    0: [280,160], 1:[120,60],  2:[120,260], 3:[220,40],
+    4:[220,280],  5:[380,60],  6:[400,160], 7:[400,280], 8:[520,200]
+  };
+
+  const isHighlight = (u, v) => {
+    for (let i = 0; i < highlightPath.length - 1; i++) {
+      if ((highlightPath[i]==u && highlightPath[i+1]==v) ||
+          (highlightPath[i]==v && highlightPath[i+1]==u)) return true;
+    }
+    return false;
+  };
+
+  let s = '';
+  // Edges
+  graphData.edges.forEach(e => {
+    const p1 = pos[e.from], p2 = pos[e.to];
+    if (!p1 || !p2) return;
+    const hl = isHighlight(e.from, e.to);
+    const mx = (p1[0]+p2[0])/2, my = (p1[1]+p2[1])/2;
+    s += `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}"
+            stroke="${hl ? 'var(--accent)' : '#1e2535'}" stroke-width="${hl ? 3 : 1.5}"
+            ${hl ? 'stroke-dasharray="6 4"' : ''} />`;
+    s += `<text x="${mx}" y="${my-4}" text-anchor="middle" fill="var(--muted)"
+            font-size="10" font-family="Share Tech Mono">${e.weight}m</text>`;
+  });
+  // Nodes
+  graphData.nodes.forEach(n => {
+    const p = pos[n.id];
+    if (!p) return;
+    const onPath = highlightPath.includes(n.id);
+    s += `<circle cx="${p[0]}" cy="${p[1]}" r="18"
+            fill="${onPath ? 'rgba(232,71,42,0.25)' : 'var(--bg3)'}"
+            stroke="${onPath ? 'var(--accent)' : 'var(--border2)'}"
+            stroke-width="${onPath ? 2 : 1}" />`;
+    s += `<text x="${p[0]}" y="${p[1]-22}" text-anchor="middle" fill="${onPath ? 'var(--accent)' : 'var(--text)'}"
+            font-size="9" font-family="Exo 2">${n.name.split(' ')[0]}</text>`;
+    s += `<text x="${p[0]}" y="${p[1]+4}" text-anchor="middle" fill="${onPath ? 'var(--accent)' : 'var(--muted)'}"
+            font-size="10" font-family="Share Tech Mono">${n.id}</text>`;
+  });
+
+  svg.innerHTML = s;
+}
+
+// ── COMMAND TREE ──────────────────────────────────────────
+async function loadTree() {
+  const data = await api('GET', '/api/commandtree');
+  if (!data) return;
+  drawTree(data.nodes);
+}
+
+function drawTree(nodes) {
+  const svg = document.getElementById('tree-svg');
+  const byId = {};
+  nodes.forEach(n => byId[n.id] = n);
+  const children = {};
+  nodes.forEach(n => { children[n.id] = []; });
+  nodes.forEach(n => { if (n.parent >= 0 && children[n.parent]) children[n.parent].push(n.id); });
+
+  // BFS layout
+  const pos = {};
+  const levels = {};
+  const queue = [0];
+  levels[0] = 0;
+  const levelWidth = {};
+  while (queue.length) {
+    const id = queue.shift();
+    const lv = levels[id];
+    levelWidth[lv] = (levelWidth[lv]||0) + 1;
+    (children[id]||[]).forEach(c => { levels[c] = lv + 1; queue.push(c); });
+  }
+  const levelCount = {};
+  const maxDepth = Math.max(...Object.values(levels));
+  const H = 300, W = 700;
+  const yStep = H / (maxDepth + 1);
+  nodes.forEach(n => {
+    const lv = levels[n.id];
+    levelCount[lv] = (levelCount[lv]||0);
+    const idx = levelCount[lv]++;
+    const total = levelWidth[lv];
+    pos[n.id] = [(idx + 1) * W / (total + 1), (lv + 0.5) * yStep];
+  });
+
+  const colors = ['var(--accent)', 'var(--blue)', 'var(--green)', 'var(--yellow)', 'var(--purple)'];
+  let s = '';
+  // Edges
+  nodes.forEach(n => {
+    if (n.parent >= 0 && pos[n.parent] && pos[n.id]) {
+      const p = pos[n.parent], c = pos[n.id];
+      s += `<line x1="${p[0]}" y1="${p[1]}" x2="${c[0]}" y2="${c[1]}"
+              stroke="var(--border2)" stroke-width="1.5" />`;
+    }
+  });
+  // Nodes
+  nodes.forEach(n => {
+    const p = pos[n.id];
+    const lv = levels[n.id];
+    const col = colors[lv % colors.length];
+    s += `<circle cx="${p[0]}" cy="${p[1]}" r="16"
+            fill="rgba(13,15,23,0.9)" stroke="${col}" stroke-width="1.5" />`;
+    const words = byId[n.id].name.split(' ');
+    words.forEach((w, i) => {
+      s += `<text x="${p[0]}" y="${p[1] + (i - (words.length-1)/2)*11 + 1}"
+              text-anchor="middle" fill="${col}"
+              font-size="7.5" font-family="Exo 2">${w}</text>`;
+    });
+  });
+  svg.innerHTML = s;
+}
+
+// ── LOGS ─────────────────────────────────────────────────
+async function loadLogs() {
+  const data = await api('GET', '/api/logs');
+  if (!data) return;
+  const list = document.getElementById('logs-list');
+  if (!data.length) { list.innerHTML = '<div class="empty-state">No operations logged</div>'; return; }
+  list.innerHTML = data.map(l => `
+    <div class="log-item">
+      <span class="log-action">${l.action}</span>
+      <span class="log-detail">${l.detail}</span>
+      <span class="log-time">${l.timestamp.split(' ')[1]||l.timestamp}</span>
+    </div>
+  `).join('');
+}
+
+async function undoOp() {
+  const res = await api('DELETE', '/api/logs/undo', null);
+  if (res && res.undone) {
+    toast('Undone: ' + res.undone.detail, 'info');
+    loadLogs();
+  } else {
+    toast('Nothing to undo', 'error');
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>
